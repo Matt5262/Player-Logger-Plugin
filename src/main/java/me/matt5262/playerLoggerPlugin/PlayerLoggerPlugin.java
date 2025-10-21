@@ -7,52 +7,84 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.logging.Level;
 
 public final class PlayerLoggerPlugin extends JavaPlugin {
 
     private File logFile;
+    private Connection connection;
 
     @Override
     public void onEnable() {
         // Ensure plugin data folder exists
         File dataFolder = getDataFolder();
         if (!dataFolder.exists() && !dataFolder.mkdirs()) {
-            // tries to create the folder that contains all the files like config and stuff, if it doesn't exist of course.
-            // If creating the folder fail (mkdirs) then log the following message.
             getLogger().severe("Could not create plugin data folder: " + dataFolder.getAbsolutePath());
-            // Not returning/disable for now — adjust as needed
         }
 
-        // Create /logs directory and log file using java.nio
+        // Create /logs folder and log file
         Path logsDir = dataFolder.toPath().resolve("logs");
-        // Path is a path or a modern file type, MAYBE. Resolve .resolve("logs") adds "logs" onto that path → /plugins/PlayerLoggerPlugin/logs
         try {
             Files.createDirectories(logsDir);
-            // A modern mkdirs?
-            // (ChatGPT said: Creates the directory (and parents) if missing — safe and idempotent (you can call it multiple times without errors).
-            // If it fails (e.g., permission denied), it throws IOException.)
             Path logPath = logsDir.resolve("join_leave_log.txt");
-            // Adds the "join_leave_log.txt" to the path.
             if (!Files.exists(logPath)) {
                 Files.createFile(logPath);
             }
             this.logFile = logPath.toFile();
-            // Converts the Path back into a File (since Bukkit’s older APIs use File).
-            // Stores it in your logFile variable for later access (your listener will use this to append log entries).
         } catch (IOException e) {
-            // Catches any file creation error.
             getLogger().log(Level.SEVERE, "Failed to setup logs directory/file", e);
         }
 
+        // Initialize database
+        setupDatabase();
+
         // Register listener
         getServer().getPluginManager().registerEvents(new PlayerJoinLeaveListener(this), this);
-        getLogger().info("PlayerLoggerPlugin enabled! The plugin is still work in progress.");
+        getLogger().info("PlayerLoggerPlugin enabled!");
+    }
+
+    @Override
+    public void onDisable() {
+        try {
+            if (connection != null && !connection.isClosed()) {
+                connection.close();
+            }
+        } catch (SQLException e) {
+            getLogger().log(Level.SEVERE, "Failed to close database connection", e);
+        }
+        getLogger().info("PlayerLoggerPlugin disabled!");
     }
 
     public File getLogFile() {
         return logFile;
     }
-    // This will be used in the listener so if that the getLogFIle gets called inside the listener
-    // it will return logFile variable which is the path to the log file.
+
+    public Connection getConnection() {
+        return connection;
+    }
+
+    private void setupDatabase() {
+        try {
+            // SQLite file in plugin folder
+            File dbFile = new File(getDataFolder(), "playtime.db");
+            connection = DriverManager.getConnection("jdbc:sqlite:" + dbFile.getAbsolutePath());
+
+            // Create table if not exists
+            try (Statement stmt = connection.createStatement()) {
+                stmt.executeUpdate(
+                        "CREATE TABLE IF NOT EXISTS playtime (" +
+                                "uuid TEXT PRIMARY KEY," +
+                                "total_ms INTEGER NOT NULL" +
+                                ");"
+                );
+            }
+
+        } catch (SQLException e) {
+            getLogger().log(Level.SEVERE, "Failed to setup database", e);
+        }
+    }
 }
