@@ -47,7 +47,7 @@ public final class PlayerLoggerPlugin extends JavaPlugin {
 
         // Register listener
         getServer().getPluginManager().registerEvents(new PlayerJoinLeaveListener(this), this);
-        getLogger().info("PlayerLoggerPlugin enabled! This is still WIP");
+        getLogger().info("PlayerLoggerPlugin enabled! The plugin is still WIP");
     }
 
     public File getLogFile() {
