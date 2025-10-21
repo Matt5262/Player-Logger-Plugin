@@ -17,9 +17,13 @@ public final class PlayerLoggerPlugin extends JavaPlugin {
 
     private File logFile;
     private Connection connection;
+    private PlayerJoinLeaveListener listener;
+    public boolean isShuttingDown = false;
 
     @Override
     public void onEnable() {
+        listener = new PlayerJoinLeaveListener(this);
+        getServer().getPluginManager().registerEvents(listener, this);
         // Ensure plugin data folder exists
         File dataFolder = getDataFolder();
         if (!dataFolder.exists() && !dataFolder.mkdirs()) {
@@ -49,6 +53,10 @@ public final class PlayerLoggerPlugin extends JavaPlugin {
 
     @Override
     public void onDisable() {
+
+        isShuttingDown = true;
+        getServer().getOnlinePlayers().forEach(player -> listener.handleServerShutdown(player));
+
         try {
             if (connection != null && !connection.isClosed()) {
                 connection.close();

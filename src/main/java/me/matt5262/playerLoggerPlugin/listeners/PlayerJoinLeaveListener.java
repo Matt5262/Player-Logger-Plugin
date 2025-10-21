@@ -19,6 +19,7 @@ public class PlayerJoinLeaveListener implements Listener {
     private final PlayerLoggerPlugin plugin;
     private final Map<UUID, Long> sessionStartTimes = new HashMap<>();
 
+
     public PlayerJoinLeaveListener(PlayerLoggerPlugin plugin) {
         this.plugin = plugin;
     }
@@ -44,7 +45,15 @@ public class PlayerJoinLeaveListener implements Listener {
 
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
-        Player player = event.getPlayer();
+        if (plugin.isShuttingDown) return; // skip normal quit logging
+        handlePlayerLeave(event.getPlayer(), "LEFT");
+    }
+
+    public void handleServerShutdown(Player player) {
+        handlePlayerLeave(player, "LEFT (SHUTDOWN)");
+    }
+
+    private void handlePlayerLeave(Player player, String eventLabel) {
         UUID uuid = player.getUniqueId();
 
         long joinTime = sessionStartTimes.getOrDefault(uuid, System.currentTimeMillis());
@@ -56,13 +65,12 @@ public class PlayerJoinLeaveListener implements Listener {
         long totalPlaytime = getTotalPlaytime(uuid);
         String time = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date());
 
-        // Format: [QUIT] Name | UUID | IP | Total | Session
         String ip = player.getAddress() != null
                 ? player.getAddress().getAddress().getHostAddress()
                 : "Unknown IP";
 
-        logToFile(String.format("[%s] [LEFT] %s | %s | %s | Total: %s | Session: %s",
-                time, player.getName(), uuid, ip,
+        logToFile(String.format("[%s] [%s] %s | %s | %s | Total: %s | Session: %s",
+                time, eventLabel, player.getName(), uuid, ip,
                 formatPlaytime(totalPlaytime),
                 formatPlaytime(sessionDuration)));
     }
