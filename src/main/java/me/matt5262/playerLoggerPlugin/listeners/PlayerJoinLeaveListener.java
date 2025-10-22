@@ -41,6 +41,22 @@ public class PlayerJoinLeaveListener implements Listener {
         // Format: [JOIN] Name | UUID | IP | Total playtime
         logToFile(String.format("[%s] [JOIN] %s | %s | %s | Total: %s",
                 time, player.getName(), uuid, ip, formatPlaytime(totalPlaytime)));
+
+        recordDailyLogin(player.getUniqueId());
+    }
+
+    private void recordDailyLogin(UUID uuid) {
+        String today = java.time.LocalDate.now().toString();
+        try (Connection conn = plugin.getConnection();
+             PreparedStatement ps = conn.prepareStatement(
+                     "INSERT OR IGNORE INTO daily_logins (date, uuid) VALUES (?, ?)"
+             )) {
+            ps.setString(1, today);
+            ps.setString(2, uuid.toString());
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            plugin.getLogger().severe("Failed to record daily login: " + e.getMessage());
+        }
     }
 
     @EventHandler

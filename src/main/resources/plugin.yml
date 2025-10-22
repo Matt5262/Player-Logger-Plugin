@@ -5,3 +5,12 @@ api-version: '1.21'
 authors: [ Matt_5262 ]
 description: Its supposed to log player stuff
 website: https://discord.com/invite/JdzQMaNmKw
+commands:
+  avgplayers:
+    description: Shows the average number of players joining daily.
+    usage: /avgplayers
+    permission: playerlogger.avgplayers
+permissions:
+  playerlogger.avgplayers:
+    description: Allows use of /avgplayers
+    default: op

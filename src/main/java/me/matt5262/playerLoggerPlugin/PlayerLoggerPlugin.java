@@ -1,5 +1,6 @@
 package me.matt5262.playerLoggerPlugin;
 
+import me.matt5262.playerLoggerPlugin.commands.AvgPlayersCommand;
 import me.matt5262.playerLoggerPlugin.listeners.PlayerJoinLeaveListener;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -27,6 +28,7 @@ public final class PlayerLoggerPlugin extends JavaPlugin {
         // Register listener (only once)
         listenerInstance = new PlayerJoinLeaveListener(this);
         getServer().getPluginManager().registerEvents(listenerInstance, this);
+        getCommand("avgplayers").setExecutor(new AvgPlayersCommand(this));
 
 
         // Ensure plugin data folder exists
@@ -101,6 +103,13 @@ public final class PlayerLoggerPlugin extends JavaPlugin {
                         "CREATE TABLE IF NOT EXISTS playtime (" +
                                 "uuid TEXT PRIMARY KEY," +
                                 "total_ms INTEGER NOT NULL" +
+                                ");"
+                );
+                stmt.executeUpdate(
+                        "CREATE TABLE IF NOT EXISTS daily_logins (" +
+                                "date TEXT NOT NULL," +
+                                "uuid TEXT NOT NULL," +
+                                "PRIMARY KEY (date, uuid)" +
                                 ");"
                 );
             }
