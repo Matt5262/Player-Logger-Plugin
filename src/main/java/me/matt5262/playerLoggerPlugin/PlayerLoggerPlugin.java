@@ -1,6 +1,7 @@
 package me.matt5262.playerLoggerPlugin;
 
 import me.matt5262.playerLoggerPlugin.listeners.PlayerJoinLeaveListener;
+import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
@@ -17,13 +18,17 @@ public final class PlayerLoggerPlugin extends JavaPlugin {
 
     private File logFile;
     private Connection connection;
-    private PlayerJoinLeaveListener listener;
     public boolean isShuttingDown = false;
+    private PlayerJoinLeaveListener listenerInstance;
+
 
     @Override
     public void onEnable() {
-        listener = new PlayerJoinLeaveListener(this);
-        getServer().getPluginManager().registerEvents(listener, this);
+        // Register listener (only once)
+        listenerInstance = new PlayerJoinLeaveListener(this);
+        getServer().getPluginManager().registerEvents(listenerInstance, this);
+
+
         // Ensure plugin data folder exists
         File dataFolder = getDataFolder();
         if (!dataFolder.exists() && !dataFolder.mkdirs()) {
@@ -46,26 +51,35 @@ public final class PlayerLoggerPlugin extends JavaPlugin {
         // Initialize database
         setupDatabase();
 
-        // Register listener
-        getServer().getPluginManager().registerEvents(new PlayerJoinLeaveListener(this), this);
         getLogger().info("PlayerLoggerPlugin enabled!");
     }
 
+
     @Override
     public void onDisable() {
-
         isShuttingDown = true;
-        getServer().getOnlinePlayers().forEach(player -> listener.handleServerShutdown(player));
+        getLogger().info("Saving any remaining players before shutdown...");
 
+        // Log all players that are still online before shutdown
+        for (Player player : getServer().getOnlinePlayers()) {
+            if (listenerInstance != null) {
+                listenerInstance.handleServerShutdown(player);
+            }
+        }
+
+        // Close the database connection safely
         try {
             if (connection != null && !connection.isClosed()) {
                 connection.close();
+                getLogger().info("Database connection closed.");
             }
         } catch (SQLException e) {
             getLogger().log(Level.SEVERE, "Failed to close database connection", e);
         }
+
         getLogger().info("PlayerLoggerPlugin disabled!");
     }
+
 
     public File getLogFile() {
         return logFile;

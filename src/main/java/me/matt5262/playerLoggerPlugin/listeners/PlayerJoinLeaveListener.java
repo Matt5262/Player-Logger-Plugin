@@ -47,6 +47,7 @@ public class PlayerJoinLeaveListener implements Listener {
     public void onQuit(PlayerQuitEvent event) {
         if (plugin.isShuttingDown) return; // skip normal quit logging
         handlePlayerLeave(event.getPlayer(), "LEFT");
+
     }
 
     public void handleServerShutdown(Player player) {
