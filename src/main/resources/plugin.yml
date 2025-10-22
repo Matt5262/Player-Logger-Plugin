@@ -1,5 +1,5 @@
 name: PlayerLoggerPlugin
-version: '0.3.0'
+version: '0.4.0'
 main: me.matt5262.playerLoggerPlugin.PlayerLoggerPlugin
 api-version: '1.21'
 authors: [ Matt_5262 ]
