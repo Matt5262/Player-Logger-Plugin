@@ -6,7 +6,7 @@
 
     <groupId>me.matt5262</groupId>
     <artifactId>playerLoggerPlugin</artifactId>
-    <version>0.2.0</version>
+    <version>0.3.0</version>
     <packaging>jar</packaging>
 
     <name>playerLoggerPlugin</name>
