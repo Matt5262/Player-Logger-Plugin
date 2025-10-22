@@ -22,40 +22,27 @@ public final class PlayerLoggerPlugin extends JavaPlugin {
     public boolean isShuttingDown = false;
     private PlayerJoinLeaveListener listenerInstance;
 
-
     @Override
     public void onEnable() {
-        // Register listener (only once)
-        listenerInstance = new PlayerJoinLeaveListener(this);
-        getServer().getPluginManager().registerEvents(listenerInstance, this);
-        getCommand("avgplayers").setExecutor(new AvgPlayersCommand(this));
-
-
-        // Ensure plugin data folder exists
-        File dataFolder = getDataFolder();
-        if (!dataFolder.exists() && !dataFolder.mkdirs()) {
-            getLogger().severe("Could not create plugin data folder: " + dataFolder.getAbsolutePath());
-        }
+        // Initialize database first
+        setupDatabase();
 
         // Create /logs folder and log file
-        Path logsDir = dataFolder.toPath().resolve("logs");
-        try {
-            Files.createDirectories(logsDir);
-            Path logPath = logsDir.resolve("join_leave_log.txt");
-            if (!Files.exists(logPath)) {
-                Files.createFile(logPath);
-            }
-            this.logFile = logPath.toFile();
-        } catch (IOException e) {
-            getLogger().log(Level.SEVERE, "Failed to setup logs directory/file", e);
-        }
+        setupLogFile();
 
-        // Initialize database
-        setupDatabase();
+        // Register listener
+        listenerInstance = new PlayerJoinLeaveListener(this);
+        getServer().getPluginManager().registerEvents(listenerInstance, this);
+
+        // Register command
+        if (getCommand("avgplayers") != null) {
+            getCommand("avgplayers").setExecutor(new AvgPlayersCommand(this));
+        } else {
+            getLogger().warning("Command /avgplayers is not defined in plugin.yml!");
+        }
 
         getLogger().info("PlayerLoggerPlugin enabled!");
     }
-
 
     @Override
     public void onDisable() {
@@ -70,18 +57,17 @@ public final class PlayerLoggerPlugin extends JavaPlugin {
         }
 
         // Close the database connection safely
-        try {
-            if (connection != null && !connection.isClosed()) {
+        if (connection != null) {
+            try {
                 connection.close();
                 getLogger().info("Database connection closed.");
+            } catch (SQLException e) {
+                getLogger().log(Level.SEVERE, "Failed to close database connection", e);
             }
-        } catch (SQLException e) {
-            getLogger().log(Level.SEVERE, "Failed to close database connection", e);
         }
 
         getLogger().info("PlayerLoggerPlugin disabled!");
     }
-
 
     public File getLogFile() {
         return logFile;
@@ -93,11 +79,14 @@ public final class PlayerLoggerPlugin extends JavaPlugin {
 
     private void setupDatabase() {
         try {
-            // SQLite file in plugin folder
             File dbFile = new File(getDataFolder(), "playtime.db");
+            if (!dbFile.getParentFile().exists() && !dbFile.getParentFile().mkdirs()) {
+                getLogger().severe("Failed to create plugin folder for database: " + dbFile.getAbsolutePath());
+            }
+
             connection = DriverManager.getConnection("jdbc:sqlite:" + dbFile.getAbsolutePath());
 
-            // Create table if not exists
+            // Create tables if not exist
             try (Statement stmt = connection.createStatement()) {
                 stmt.executeUpdate(
                         "CREATE TABLE IF NOT EXISTS playtime (" +
@@ -116,6 +105,25 @@ public final class PlayerLoggerPlugin extends JavaPlugin {
 
         } catch (SQLException e) {
             getLogger().log(Level.SEVERE, "Failed to setup database", e);
+        }
+    }
+
+    private void setupLogFile() {
+        File dataFolder = getDataFolder();
+        if (!dataFolder.exists() && !dataFolder.mkdirs()) {
+            getLogger().severe("Could not create plugin data folder: " + dataFolder.getAbsolutePath());
+        }
+
+        Path logsDir = dataFolder.toPath().resolve("logs");
+        try {
+            Files.createDirectories(logsDir);
+            Path logPath = logsDir.resolve("join_leave_log.txt");
+            if (!Files.exists(logPath)) {
+                Files.createFile(logPath);
+            }
+            this.logFile = logPath.toFile();
+        } catch (IOException e) {
+            getLogger().log(Level.SEVERE, "Failed to setup logs directory/file", e);
         }
     }
 }
