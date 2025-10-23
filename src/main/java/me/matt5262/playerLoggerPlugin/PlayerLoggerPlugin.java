@@ -74,8 +74,18 @@ public final class PlayerLoggerPlugin extends JavaPlugin {
     }
 
     public Connection getConnection() {
+        try {
+            if (connection == null || connection.isClosed()) {
+                File dbFile = new File(getDataFolder(), "playtime.db");
+                connection = DriverManager.getConnection("jdbc:sqlite:" + dbFile.getAbsolutePath());
+                getLogger().info("Reopened closed database connection.");
+            }
+        } catch (SQLException e) {
+            getLogger().log(Level.SEVERE, "Failed to reopen database connection", e);
+        }
         return connection;
     }
+
 
     private void setupDatabase() {
         try {
