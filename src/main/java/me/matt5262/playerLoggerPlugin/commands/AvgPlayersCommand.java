@@ -21,8 +21,14 @@ public class AvgPlayersCommand implements CommandExecutor {
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
 
-        try (Connection conn = plugin.getConnection();
-             PreparedStatement ps = conn.prepareStatement(
+        Connection conn = plugin.getConnection();
+        if (conn == null) {
+            sender.sendMessage("§c⚠ Database connection is not available right now.");
+            plugin.getLogger().severe("AvgPlayersCommand could not obtain a database connection.");
+            return true;
+        }
+
+        try (PreparedStatement ps = conn.prepareStatement(
                      "SELECT COUNT(DISTINCT uuid) as players, COUNT(DISTINCT date) as days FROM daily_logins"
              );
              ResultSet rs = ps.executeQuery()) {
